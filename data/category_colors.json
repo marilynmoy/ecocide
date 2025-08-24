@@ -1,0 +1,23 @@
+{
+  "colonial_institution": "#6A4C93",
+  "defense_contractor": "#A44A3F",
+  "demolition": "#8D6A9F",
+  "digital_control": "#4A7C89",
+  "ecological_disruption": "#4F6B58",
+  "extrajudicial_killing": "#B07BAC",
+  "industrialization": "#8D99AE",
+  "infrastructure_expansion": "#A68A64",
+  "institutional_control": "#BC6C25",
+  "land_confiscation": "#9E2A2B",
+  "land_fragmentation": "#BB4D00",
+  "lethal_force": "#432818",
+  "military_supplier": "#5B5F97",
+  "pollution": "#6C757D",
+  "state_military": "#67000D",
+  "surveillance": "#1D3557",
+  "targeting_surveillance": "#6F73D2",
+  "tech_corporation": "#264653",
+  "tech_development": "#2A9D8F",
+  "urban_destruction": "#99582A",
+  "utility_infrastructure": "#7C7C7C"
+}

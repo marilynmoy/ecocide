@@ -1,0 +1,72 @@
+
+:root{
+  --bg:#0b0c10;
+  --panel:#111216;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --accent:#eab308;
+  --link:#93c5fd;
+  --dim:#1f2937;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  background:var(--bg);
+  color:var(--text);
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+.header{
+  padding:1rem 1.25rem;
+  border-bottom:1px solid #1f2937;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.brand{font-weight:700;letter-spacing:.3px}
+.small{font-size:.9rem;color:var(--muted)}
+.container{
+  display:grid;
+  grid-template-columns: 280px 1fr;
+  gap:0;
+  height:calc(100vh - 64px);
+}
+@media (max-width: 960px){
+  .container{grid-template-columns: 1fr; grid-template-rows: auto 1fr;}
+  .sidebar{order:1}
+  .graph-wrap{order:2}
+}
+.sidebar{
+  background:var(--panel);
+  border-right:1px solid #1f2937;
+  padding:1rem;
+  overflow:auto;
+}
+.legend h3{margin:.5rem 0 0.5rem;font-size:1rem;color:#cbd5e1}
+.legend .item{display:flex;align-items:center;gap:.5rem;margin:.25rem 0;font-size:.9rem;color:#d1d5db}
+.legend .swatch{width:14px;height:14px;border-radius:3px;border:1px solid #0003}
+.key{margin-top:1rem;padding:.75rem;border:1px solid #262b36;border-radius:10px;background:#0f1116;color:#d1d5db}
+.key h4{margin:.2rem 0 .4rem;font-size:1rem}
+.key p{margin:.4rem 0;color:#9aa3b2;font-size:.9rem;line-height:1.4}
+.graph-wrap{position:relative}
+#graph{width:100%;height:100%}
+.tooltip{
+  position:fixed;pointer-events:none;z-index:20;
+  background:#0f1116;border:1px solid #262b36;border-radius:10px;
+  padding:.6rem .8rem;max-width:420px;color:#e5e7eb;font-size:.88rem;
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
+  pointer-events: auto;
+}
+.tooltip h4{margin:.1rem 0 .25rem;font-size:1rem;color:#fff}
+.tooltip .meta{color:#9aa3b2;font-size:.8rem;margin-bottom:.25rem}
+.tooltip a{color:#93c5fd}
+.badge{display:inline-block;padding:.1rem .45rem;border-radius:6px;border:1px solid #2b3242;background:#0b0e14;color:#cbd5e1;font-size:.72rem}
+.footer{
+  position:absolute;bottom:10px;left:10px;background:#0f1116;border:1px solid #262b36;border-radius:10px;padding:.4rem .6rem;color:#94a3b8;font-size:.82rem
+}
+.controls{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+button.ctrl{background:#0f1116;border:1px solid #262b36;border-radius:8px;color:#e5e7eb;padding:.4rem .6rem;font-size:.85rem;cursor:pointer}
+button.ctrl:hover{border-color:#334155}
+.search{margin-top:.5rem;display:flex;gap:.4rem}
+.search input{flex:1;background:#0f1116;border:1px solid #262b36;border-radius:8px;color:#e5e7eb;padding:.45rem .6rem}
+.search input::placeholder{color:#6b7280}
