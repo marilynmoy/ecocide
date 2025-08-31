@@ -26,8 +26,8 @@
         <h4>How to Read</h4>
         <p><strong>Node color</strong> = category (company, state/military, impact type, etc.).</p>
         <p><strong>Edge thickness</strong> = weight (strength of method's contribution).</p>
-        <p><strong>Hover</strong> over edges to see method details, sources, and era context.</p>
-        <p><strong>Click</strong> a node to highlight its immediate connections. Double‑click background to reset.</p>
+        <p><strong>Hover</strong> over edges or nodes to see method details, sources, and era context.</p>
+        <p><strong>Click</strong> a node to highlight its immediate connections. <strong>Double-click</strong> background to reset.</p>
         <div class="controls">
           <button class="ctrl" id="fit">Fit to screen</button>
           <button class="ctrl" id="reset">Reset zoom</button>
@@ -40,7 +40,12 @@
     </aside>
     <section class="graph-wrap">
       <svg id="graph" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="footer">Data compiled primarily from Who Profits Research Center. <a href="eras.html">Learn more about the eras</a>.</div>
+      <div class="footer">
+        Data compiled primarily from Who Profits Research Center. 
+        <a href="eras.html">Learn more about the eras</a>. |
+        <a href="data/visualization_nodes.csv" download>Download nodes CSV</a> |
+        <a href="data/visualization_edges.csv" download>Download edges CSV</a>
+      </div>
     </section>
   </div>
 
@@ -76,9 +81,7 @@ Promise.all([
   fetch(files.eras).then(r=>r.json())
 ]).then(([nodes, edges, colorMap, eras]) => {
 
-  // Prepare id->node map
   const idToNode = new Map(nodes.map(d => [d.id, d]));
-  // Make sure edges reference existing nodes
   const filteredEdges = edges.filter(e => idToNode.has(e.source) && idToNode.has(e.target));
 
   // Legend
@@ -92,45 +95,48 @@ Promise.all([
 
   // Force simulation
   const sim = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(filteredEdges).id(d=>d.id).distance(d=> 80 + (1 - (d.weight||0.5))*160 ).strength(0.4))
-    .force('charge', d3.forceManyBody().strength(-180))
+    .force('link', d3.forceLink(filteredEdges).id(d=>d.id).distance(120).strength(0.6))
+    .force('charge', d3.forceManyBody().strength(-220))
     .force('center', d3.forceCenter(width/2, height/2))
-    .force('collide', d3.forceCollide().radius( d => 16 ).iterations(1));
+    .force('collide', d3.forceCollide().radius(18).iterations(1));
 
   // Scales
-  const strokeScale = d3.scaleLinear().domain([0,1]).range([0.5, 5]);
+  const strokeScale = d3.scaleLinear().domain([.7,1]).range([1.5, 8]);
 
   // Draw links
   const links = linkLayer.selectAll('line')
     .data(filteredEdges)
     .enter().append('line')
-    .attr('stroke', '#94a3b8')
-    .attr('stroke-opacity', 0.45)
+    .attr('stroke', '#64748B')
+    .attr('stroke-opacity', d => 0.3 + (d.weight||0.5)*0.6)
     .attr('stroke-width', d => strokeScale(d.weight ?? 0.5));
 
   // Draw nodes
   const nodesSel = nodeLayer.selectAll('circle')
     .data(nodes, d=>d.id)
     .enter().append('circle')
-      .attr('r', 8)
+      .attr('r', 9)
       .attr('fill', d => colorMap[d.category] || '#9CA3AF')
-      .attr('stroke', '#0b0c10')
-      .attr('stroke-width', 1.2)
+      .attr('stroke', '#111827')
+      .attr('stroke-width', 1.4)
       .call(drag(sim))
       .on('click', (_, d) => focusNode(d))
       .on('mouseover', function(event, d){
-        // Build node tooltip
-        const html = `<h4>${escapeHtml(d.id)}</h4>
-          <div class="meta">Category: ${escapeHtml(d.category || 'n/a')}</div>
-          <div class="meta">Degree: ${degree(d.id)}</div>`;
+        const neighbors = filteredEdges.filter(e => e.source.id===d.id || e.target.id===d.id);
+        let html = `<h4>${escapeHtml(d.id)}</h4>
+        <div class="meta">Category: ${escapeHtml(d.category||'n/a')} | Degree: ${degree(d.id)}</div>`;
+        neighbors.slice(0,5).forEach(e=>{
+          const eraText = e.era || 'n/a';
+          const sourceLink = e.source_url ? `<a href="${escapeAttr(e.source_url)}" target="_blank">source</a>` : '';
+          html += `<p><strong>${escapeHtml(e.source.id||e.source)} → ${escapeHtml(e.target.id||e.target)}</strong>
+            (${escapeHtml(eraText)}) – ${escapeHtml(e.original_value||'')}
+            ${sourceLink}</p>`;
+        });
+        if(neighbors.length > 5) html += `<div class="meta">+${neighbors.length-5} more connections…</div>`;
         showTip(event, html);
       })
       .on('mousemove', moveTip)
-      .on('mouseout', function() {
-        if (!d3.select('.tooltip').node().matches(':hover')) {
-          hideTip();
-        }
-      });
+      .on('mouseout', hideTip);
 
   // Labels
   const labels = labelLayer.selectAll('text')
@@ -142,40 +148,24 @@ Promise.all([
       .attr('opacity', 0.85)
       .attr('pointer-events','none');
 
-  // Edge tooltips 
+  // Edge tooltips
   links
     .on('mouseover', function(event, d){
       const eraText = d.era || 'n/a';
-      const eraDesc = eras[eraText] ? `<div class="meta">${escapeHtml(eras[eraText])} <a href="eras.html">More</a></div>` : '';
-      const sourceLink = d.source_url ? `<a href="${escapeAttr(d.source_url)}" target="_blank" rel="noopener">source</a>` : 'source';
+      const sourceLink = d.source_url ? `<a href="${escapeAttr(d.source_url)}" target="_blank">source</a>` : '';
       const html = `
-       <h4>${escapeHtml(d.source.id || d.source)} → ${escapeHtml(d.target.id || d.target)}</h4>
-        <div class="meta">${escapeHtml(d.type || '')} • ${escapeHtml(eraText)} • ${escapeHtml((d.year_start||'') + '–' + (d.year_end||''))}</div>
+        <h4>${escapeHtml(d.source.id||d.source)} → ${escapeHtml(d.target.id||d.target)}</h4>
+        <div class="meta">${escapeHtml(d.type||'')} • ${escapeHtml(eraText)} • ${escapeHtml((d.year_start||'') + '–' + (d.year_end||''))}</div>
         <div><span class="badge">Weight: ${fmt(d.weight)}</span>
              <span class="badge">Impact: ${escapeHtml(d.impact||'n/a')}</span></div>
-        <p>${escapeHtml(d.original_value || '')}</p>
-        <p>${escapeHtml(d.notes || '')}</p>
+        <p>${escapeHtml(d.original_value||'')}</p>
+        <p>${escapeHtml(d.notes||'')}</p>
         <div>${sourceLink}</div>
       `;
       showTip(event, html);
     })
     .on('mousemove', moveTip)
-    .on('mouseout', function() {
-      if (!d3.select('.tooltip').node().matches(':hover')) {
-        hideTip();
-      }
-    });
-
-  // Update the tooltip creation to include interaction handlers
-  tooltip
-    .on('mouseenter', function() {
-      // When mouse enters tooltip, clear the hide timeout
-      clearTimeout(hideTip.timeout);
-    })
-    .on('mouseleave', function() {
-      // When mouse leaves tooltip, start the hide timeout
-      hideTip();
-    });
+    .on('mouseout', hideTip);
 
   sim.on('tick', () => {
     links
@@ -197,10 +187,16 @@ Promise.all([
   });
   svg.call(zoom);
 
-  // Controls
-  d3.select('#fit').on('click', () => {
-    fitToScreen();
+  svg.call(zoom).on("dblclick.zoom", null);
+  svg.on('dblclick', ()=> {
+    nodesSel.attr('opacity', 1);
+    labels.attr('opacity', 0.85);
+    links.attr('stroke-opacity', d => 0.3 + (d.weight||0.5)*0.6)
+         .attr('stroke', '#64748B');
   });
+
+  // Controls
+  d3.select('#fit').on('click', fitToScreen);
   d3.select('#reset').on('click', () => {
     svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
   });
@@ -214,9 +210,7 @@ Promise.all([
     const q = d3.select('#searchBox').property('value').toLowerCase().trim();
     if(!q) return;
     const hit = nodes.find(n => String(n.id).toLowerCase().includes(q));
-    if(hit){
-      focusNode(hit);
-    }
+    if(hit){ focusNode(hit); }
   }
 
   function focusNode(d){
@@ -225,10 +219,10 @@ Promise.all([
       if(e.source.id === d.id){ neighbors.add(e.target.id); }
       else if(e.target.id === d.id){ neighbors.add(e.source.id); }
     });
-    nodesSel.attr('opacity', n => (n.id===d.id || neighbors.has(n.id)) ? 1 : 0.25);
-    labels.attr('opacity', n => (n.id===d.id || neighbors.has(n.id)) ? 1 : 0.25);
-    links.attr('stroke-opacity', e => (e.source.id===d.id || e.target.id===d.id) ? 0.85 : 0.05)
-         .attr('stroke', e => (e.source.id===d.id || e.target.id===d.id) ? '#eab308' : '#94a3b8');
+    nodesSel.attr('opacity', n => (n.id===d.id || neighbors.has(n.id)) ? 1 : 0.2);
+    labels.attr('opacity', n => (n.id===d.id || neighbors.has(n.id)) ? 1 : 0.2);
+    links.attr('stroke-opacity', e => (e.source.id===d.id || e.target.id===d.id) ? 1 : 0.05)
+         .attr('stroke', e => (e.source.id===d.id || e.target.id===d.id) ? '#eab308' : '#64748B');
   }
 
   function degree(id){
@@ -254,13 +248,8 @@ Promise.all([
       if(!event.active) sim.alphaTarget(0.3).restart();
       d.fx = d.x; d.fy = d.y;
     }
-    function dragged(event, d){
-      d.fx = event.x; d.fy = event.y;
-    }
-    function dragended(event, d){
-      if(!event.active) sim.alphaTarget(0);
-      d.fx = null; d.fy = null;
-    }
+    function dragged(event, d){ d.fx = event.x; d.fy = event.y; }
+    function dragended(event, d){ if(!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }
     return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
   }
 
@@ -273,42 +262,16 @@ Promise.all([
     tooltip.style('left', (event.clientX + pad) + 'px')
            .style('top',  (event.clientY + pad) + 'px');
   }
-  
-  // Update the hideTip function
-  function hideTip() {
-    // Clear any existing timeout
-    clearTimeout(hideTip.timeout);
-    
-    // Set a new timeout to hide the tooltip after a delay
-    hideTip.timeout = setTimeout(() => {
-      tooltip.style('opacity', 0);
-    }, 300);
-  }
+  function hideTip(){ tooltip.style('opacity',0); }
 
-  function fmt(x){
-    return (x == null || Number.isNaN(+x)) ? 'n/a' : (+x).toFixed(2);
-  }
-
+  function fmt(x){ return (x==null || isNaN(+x)) ? 'n/a' : (+x).toFixed(2); }
   function escapeHtml(str){
-    return String(str ?? '').replace(/[&<>"']/g, function (s){
-      const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-      };
-      return map[s];
-    });
+    return String(str||'').replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[s]));
   }
+  function escapeAttr(str){ return String(str||'').replace(/"/g, '&quot;'); }
 
-  function escapeAttr(str){
-    return String(str ?? '').replace(/"/g, '&quot;');
-  }
-
-  // Initial slight delay then fit
   setTimeout(fitToScreen, 800);
-}); // closes the Promise.all(...).then(...)
+});
 </script>
 </body>
 </html>
