@@ -136,7 +136,11 @@ Promise.all([
         showTip(event, html);
       })
       .on('mousemove', moveTip)
-      .on('mouseout', hideTip);
+      .on('mouseout', function() {
+        if (!d3.select('.tooltip').node().matches(':hover')) {
+          hideTip();
+        }
+      });
 
   // Labels
   const labels = labelLayer.selectAll('text')
@@ -152,7 +156,7 @@ Promise.all([
   links
     .on('mouseover', function(event, d){
       const eraText = d.era || 'n/a';
-      const sourceLink = d.source_url ? `<a href="${escapeAttr(d.source_url)}" target="_blank">source</a>` : '';
+      const sourceLink = d.source_url ? `<a href="${escapeAttr(d.source_url)}" target="_blank" rel="noopener">source</a>` : 'source';
       const html = `
         <h4>${escapeHtml(d.source.id||d.source)} → ${escapeHtml(d.target.id||d.target)}</h4>
         <div class="meta">${escapeHtml(d.type||'')} • ${escapeHtml(eraText)} • ${escapeHtml((d.year_start||'') + '–' + (d.year_end||''))}</div>
@@ -165,7 +169,22 @@ Promise.all([
       showTip(event, html);
     })
     .on('mousemove', moveTip)
-    .on('mouseout', hideTip);
+    .on('mouseout', function() {
+      if (!d3.select('.tooltip').node().matches(':hover')) {
+        hideTip();
+      }
+    });
+
+  // Update the tooltip creation to include interaction handlers
+  tooltip
+    .on('mouseenter', function() {
+      // When mouse enters tooltip, clear the hide timeout
+      clearTimeout(hideTip.timeout);
+    })
+    .on('mouseleave', function() {
+      // When mouse leaves tooltip, start the hide timeout
+      hideTip();
+    });
 
   sim.on('tick', () => {
     links
@@ -262,7 +281,17 @@ Promise.all([
     tooltip.style('left', (event.clientX + pad) + 'px')
            .style('top',  (event.clientY + pad) + 'px');
   }
-  function hideTip(){ tooltip.style('opacity',0); }
+  
+  // Update the hideTip function
+  function hideTip() {
+    // Clear any existing timeout
+    clearTimeout(hideTip.timeout);
+    
+    // Set a new timeout to hide the tooltip after a delay
+    hideTip.timeout = setTimeout(() => {
+      tooltip.style('opacity', 0);
+    }, 300);
+  }
 
   function fmt(x){ return (x==null || isNaN(+x)) ? 'n/a' : (+x).toFixed(2); }
   function escapeHtml(str){
